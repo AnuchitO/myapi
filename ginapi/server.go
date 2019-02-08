@@ -84,11 +84,26 @@ func updateTodoHandler(c *gin.Context) {
 
 	c.JSON(http.StatusInternalServerError, gin.H{"status": "don't know"})
 }
+
+func deleteTodoHandler(c *gin.Context) {
+	id := c.Param("id")
+	tt := []todo.Todo{}
+	for _, t := range todos {
+		if t.ID != id {
+			tt = append(tt, t)
+		}
+	}
+
+	todos = tt
+
+	c.JSON(http.StatusOK, gin.H{"status": "success"})
+}
 func main() {
 	r := gin.Default()
 	r.GET("/todos", getTodosHandler)
 	r.GET("/todos/:id", getTodosByIdHandler)
 	r.PUT("/todos/:id", updateTodoHandler)
+	r.DELETE("/todos/:id", deleteTodoHandler)
 	r.POST("/todos", createTodosHandler)
 	r.Run(":1234")
 }
