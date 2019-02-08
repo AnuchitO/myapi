@@ -20,7 +20,6 @@ func loginMiddleware(c *gin.Context) {
 		c.Abort()
 		return
 	}
-
 	c.Next()
 
 	log.Println("ending middleware")
