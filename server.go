@@ -57,6 +57,7 @@ func todosHandler(w http.ResponseWriter, req *http.Request) {
 
 func main() {
 	http.HandleFunc("/todos", todosHandler)
+	http.HandleFunc("/todos", todosHandler)
 
 	log.Fatal(http.ListenAndServe(":1234", nil))
 }

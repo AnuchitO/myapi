@@ -1,0 +1,28 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+)
+
+func main() {
+	data := []byte(`
+		{
+			"id": "1",
+			"title": "buy cars",
+			"status": "active"
+		}
+	`)
+	var t Todo
+	err := json.Unmarshal(data, &t)
+
+	fmt.Printf("% #v\n", t)
+	fmt.Println("error ", err)
+
+	t2 := Todo{ID: "2", Title: "homework", Status: "active"}
+
+	b, err := json.Marshal(t2)
+	fmt.Printf("% #v \n %s\n", b, b)
+	fmt.Print(err)
+
+}
