@@ -6,16 +6,12 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+
+	"github.com/AnuchitO/myapi/todo"
 )
 
-type Todo struct {
-	ID     string `json:"id"`
-	Title  string `json:"title"`
-	Status string `json:"status"`
-}
-
 // var todos = make(map[string]Todo)
-var todos []Todo
+var todos []todo.Todo
 
 func todosHandler(w http.ResponseWriter, req *http.Request) {
 	fmt.Println("METHOD => ", req.Method)
@@ -40,7 +36,7 @@ func todosHandler(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		var item Todo
+		var item todo.Todo
 		err = json.Unmarshal(body, &item)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
@@ -56,7 +52,6 @@ func todosHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/todos", todosHandler)
 	http.HandleFunc("/todos", todosHandler)
 
 	log.Fatal(http.ListenAndServe(":1234", nil))
