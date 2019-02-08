@@ -98,12 +98,21 @@ func deleteTodoHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"status": "success"})
 }
-func main() {
+
+func setUp() *gin.Engine {
 	r := gin.Default()
-	r.GET("/todos", getTodosHandler)
-	r.GET("/todos/:id", getTodosByIdHandler)
-	r.PUT("/todos/:id", updateTodoHandler)
-	r.DELETE("/todos/:id", deleteTodoHandler)
-	r.POST("/todos", createTodosHandler)
+
+	v1 := r.Group("/api")
+
+	v1.GET("/todos", getTodosHandler)
+	v1.GET("/todos/:id", getTodosByIdHandler)
+	v1.PUT("/todos/:id", updateTodoHandler)
+	v1.DELETE("/todos/:id", deleteTodoHandler)
+	v1.POST("/todos", createTodosHandler)
+
+	return r
+}
+func main() {
+	r := setUp()
 	r.Run(":1234")
 }
