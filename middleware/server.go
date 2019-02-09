@@ -20,6 +20,7 @@ func loginMiddleware(c *gin.Context) {
 		c.Abort()
 		return
 	}
+
 	c.Next()
 
 	log.Println("ending middleware")
@@ -32,4 +33,15 @@ func main() {
 
 	r.POST("/hello", helloHandler)
 	r.Run(":1234")
+}
+
+// or use r.POST("/hello", middleware(helloHandler))
+func middleware(fn func(c *gin.Context)) func(*gin.Context) {
+	return func(c *gin.Context) {
+		log.Println("statring")
+
+		fn(c)
+
+		log.Println("ending...")
+	}
 }
