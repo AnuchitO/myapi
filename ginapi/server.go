@@ -1,35 +1,50 @@
 package main
 
 import (
+	"database/sql"
+	"log"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/AnuchitO/myapi/todo"
 	"github.com/gin-gonic/gin"
+
+	_ "github.com/lib/pq"
 )
-
-var todos = []todo.Todo{
-	todo.Todo{ID: 0, Title: "homeworks", Status: "active"},
-	todo.Todo{ID: 1, Title: "buy bmw", Status: "active"},
-	todo.Todo{ID: 2, Title: "buy watch", Status: "completed"},
-	todo.Todo{ID: 3, Title: "buy headphone", Status: "completed"},
-}
-
-var index = len(todos)
 
 // SELECT items FROM TODO_TABLE WHERE status='active'
 // reqest  /todos?status=active
 func getTodosHandler(c *gin.Context) {
 	status := c.Query("status")
 	if status != "" {
-		items := []todo.Todo{}
-		for _, item := range todos {
-			if item.Status == status {
-				items = append(items, item)
-			}
-		}
-		c.JSON(http.StatusOK, items)
+		c.JSON(http.StatusBadRequest, gin.H{"message": "not support yet"})
 		return
+	}
+
+	stmt, err := db.Prepare("SELECT id, title, status FROM todos")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "can't prepare query all todos statment" + err.Error()})
+		return
+	}
+
+	rows, err := stmt.Query()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "can't query all todos" + err.Error()})
+		return
+	}
+
+	var todos = []todo.Todo{}
+
+	for rows.Next() {
+		t := todo.Todo{}
+		err := rows.Scan(&t.ID, &t.Title, &t.Status)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "can't Scan row into variable" + err.Error()})
+			return
+		}
+
+		todos = append(todos, t)
 	}
 
 	c.JSON(http.StatusOK, todos)
@@ -43,29 +58,38 @@ func createTodosHandler(c *gin.Context) {
 		return
 	}
 
-	index++
-	item.ID = index
-	item.Status = "active"
-
-	todos = append(todos, item)
-
-	c.String(http.StatusOK, "create todos successfull")
-}
-
-func getTodosByIdHandler(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("id"))
-	for _, item := range todos {
-		if item.ID == id {
-			c.JSON(http.StatusOK, item)
-			return
-		}
+	row := db.QueryRow("INSERT INTO todos (title, status) VALUES ($1, $2) RETURNING id", item.Title, item.Status)
+	err = row.Scan(&item.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "can't Scan row into variable" + err.Error()})
+		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{})
+	c.JSON(http.StatusCreated, item)
 }
 
-// localhost:1234/todos/:id => path param => c.Param
-// localhost:1234/todos?status=active => query param => c.Query
+func getTodoByIdHandler(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+	// TODO: handle error
+
+	stmt, err := db.Prepare("SELECT id, title, status FROM todos WHERE id=$1")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	row := stmt.QueryRow(id)
+
+	t := todo.Todo{}
+	err = row.Scan(&t.ID, &t.Title, &t.Status)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "data not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, t)
+}
+
 func updateTodoHandler(c *gin.Context) {
 	item := todo.Todo{}
 	err := c.ShouldBindJSON(&item)
@@ -73,28 +97,38 @@ func updateTodoHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	id, _ := strconv.Atoi(c.Param("id"))
-	for i, t := range todos {
-		if t.ID == id {
-			todos[i] = item
-			c.JSON(http.StatusOK, gin.H{"status": "update success"})
-			return
-		}
+
+	stmt, err := db.Prepare("UPDATE todos SET status=$2 WHERE id=$1;")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
 	}
 
-	c.JSON(http.StatusInternalServerError, gin.H{"status": "don't know"})
+	id, _ := strconv.Atoi(c.Param("id"))
+	if _, err := stmt.Exec(id, item.Status); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	item.ID = id
+
+	c.JSON(http.StatusOK, item)
 }
 
 func deleteTodoHandler(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
-	tt := []todo.Todo{}
-	for _, t := range todos {
-		if t.ID != id {
-			tt = append(tt, t)
-		}
+	// TODO: handle error
+
+	stmt, err := db.Prepare("DELETE FROM todos WHERE id = $1")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
 	}
 
-	todos = tt
+	if _, err := stmt.Exec(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "success"})
 }
@@ -105,14 +139,24 @@ func setUp() *gin.Engine {
 	v1 := r.Group("/api")
 
 	v1.GET("/todos", getTodosHandler)
-	v1.GET("/todos/:id", getTodosByIdHandler)
+	v1.GET("/todos/:id", getTodoByIdHandler)
 	v1.PUT("/todos/:id", updateTodoHandler)
 	v1.DELETE("/todos/:id", deleteTodoHandler)
 	v1.POST("/todos", createTodosHandler)
 
 	return r
 }
+
+var db *sql.DB
+
 func main() {
+	var err error
+	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	if err != nil {
+		log.Fatal("can't connect to database", err)
+	}
+	defer db.Close()
+
 	r := setUp()
 	r.Run(":1234")
 }
