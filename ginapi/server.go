@@ -9,10 +9,10 @@ import (
 )
 
 var todos = []todo.Todo{
-	todo.Todo{ID: "0", Title: "homeworks", Status: "active"},
-	todo.Todo{ID: "1", Title: "buy bmw", Status: "active"},
-	todo.Todo{ID: "2", Title: "buy watch", Status: "completed"},
-	todo.Todo{ID: "3", Title: "buy headphone", Status: "completed"},
+	todo.Todo{ID: 0, Title: "homeworks", Status: "active"},
+	todo.Todo{ID: 1, Title: "buy bmw", Status: "active"},
+	todo.Todo{ID: 2, Title: "buy watch", Status: "completed"},
+	todo.Todo{ID: 3, Title: "buy headphone", Status: "completed"},
 }
 
 var index = len(todos)
@@ -44,7 +44,7 @@ func createTodosHandler(c *gin.Context) {
 	}
 
 	index++
-	item.ID = strconv.Itoa(index)
+	item.ID = index
 	item.Status = "active"
 
 	todos = append(todos, item)
@@ -53,7 +53,7 @@ func createTodosHandler(c *gin.Context) {
 }
 
 func getTodosByIdHandler(c *gin.Context) {
-	id := c.Param("id")
+	id, _ := strconv.Atoi(c.Param("id"))
 	for _, item := range todos {
 		if item.ID == id {
 			c.JSON(http.StatusOK, item)
@@ -73,7 +73,7 @@ func updateTodoHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	id := c.Param("id")
+	id, _ := strconv.Atoi(c.Param("id"))
 	for i, t := range todos {
 		if t.ID == id {
 			todos[i] = item
@@ -86,7 +86,7 @@ func updateTodoHandler(c *gin.Context) {
 }
 
 func deleteTodoHandler(c *gin.Context) {
-	id := c.Param("id")
+	id, _ := strconv.Atoi(c.Param("id"))
 	tt := []todo.Todo{}
 	for _, t := range todos {
 		if t.ID != id {
