@@ -149,6 +149,20 @@ func setUp() *gin.Engine {
 
 var db *sql.DB
 
+func createTable() {
+	ctb := `
+	CREATE TABLE IF NOT EXISTS todos (
+		id SERIAL PRIMARY KEY,
+		title TEXT,
+		status TEXT
+	);`
+
+	_, err := db.Exec(ctb)
+	if err != nil {
+		log.Fatal("can't create table", err)
+	}
+}
+
 func main() {
 	var err error
 	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
@@ -156,6 +170,8 @@ func main() {
 		log.Fatal("can't connect to database", err)
 	}
 	defer db.Close()
+
+	createTable()
 
 	r := setUp()
 	r.Run(":1234")
