@@ -13,8 +13,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// SELECT items FROM TODO_TABLE WHERE status='active'
-// reqest  /todos?status=active
 func getTodosHandler(c *gin.Context) {
 	status := c.Query("status")
 	if status != "" {
